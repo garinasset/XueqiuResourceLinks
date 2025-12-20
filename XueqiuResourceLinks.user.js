@@ -185,7 +185,7 @@
         widget.setAttribute('data-thirdparty', 'true');
         widget.innerHTML = `
             <div class="widget-header">
-                <div class="title">第三方扩展</div>
+                <div class="title">第三方资源扩展</div>
             </div>
             <div class="widget-content third-party-links"></div>
         `;
