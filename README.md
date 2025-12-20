@@ -2,7 +2,7 @@
 
 [![GitHub release](https://img.shields.io/github/v/release/garinasset/XueqiuResourceLinks?style=flat-square)](https://github.com/garinasset/XueqiuResourceLinks/releases)
 
-**XueqiuResourceLinks**（雪球 · 第三方扩展）是一个 Tampermonkey/Greasemonkey 用户脚本，用于在雪球股票详情页侧边栏批量添加第三方资源链接，支持上交所、深交所、美股及港股，并可扩展更多资源。
+**XueqiuResourceLinks**（雪球 · 第三方资源扩展）是一个 Tampermonkey/Greasemonkey 用户脚本，用于在雪球股票详情页侧边栏批量添加第三方资源链接，支持上交所、深交所、美股及港股，并可扩展更多资源。
 
 ---
 
@@ -24,7 +24,7 @@
 
 1. 安装 **Tampermonkey** 或 **Greasemonkey** 浏览器扩展
 2. 点击 [安装脚本](https://raw.githubusercontent.com/garinasset/XueqiuResourceLinks/main/XueqiuResourceLinks.user.js) 按钮，自动添加到扩展中
-3. 打开雪球股票详情页，即可在侧边栏看到“第三方扩展”链接
+3. 打开雪球股票详情页，即可在侧边栏看到“第三方资源扩展”链接
 
 ---
 
