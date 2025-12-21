@@ -2,8 +2,8 @@
 // @name         XueqiuResourceLinks
 // @name:zh-CN   雪球 · 第三方资源扩展
 // @namespace    https://github.com/garinasset/XueqiuResourceLinks
-// @version      2.5.4
-// @description  在雪球股票详情页侧边栏批量添加第三方扩展链接，支持上交所、深交所、SEC:EDGAR、港交所披露易及老虎证券
+// @version      2.6.3
+// @description  在雪球股票详情页侧边栏批量添加第三方扩展链接，支持上交所、深交所、SEC:EDGAR、港交所披露易，老虎证券等等等...使用有惊喜
 // @author       garinasset
 // @homepageURL  https://github.com/garinasset/XueqiuResourceLinks
 // @supportURL   https://github.com/garinasset/XueqiuResourceLinks/issues
@@ -137,6 +137,13 @@
         thirdPartyResources.push({
             exchange: stock.exchange,
             urlFetcher: async () => ({ text: '老虎证券', url: `https://www.laohu8.com/stock/${stock.code}`, favicon: 'https://www.laohu8.com/favicon.ico' })
+        });
+    }
+
+    if (['NASDAQ', 'NYSE', 'PINK'].includes(stock.exchange)) {
+        thirdPartyResources.push({
+            exchange: stock.exchange,
+            urlFetcher: async () => ({ text: 'Stocktwits', url: `https://stocktwits.com/symbol/${stock.code}`, favicon: 'https://stocktwits.com/favicon.ico' })
         });
     }
 
