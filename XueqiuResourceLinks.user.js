@@ -2,7 +2,7 @@
 // @name         XueqiuResourceLinks
 // @name:zh-CN   雪球 · 第三方资源扩展
 // @namespace    https://github.com/garinasset/XueqiuResourceLinks
-// @version      2.6.6
+// @version      6.6.6
 // @description  在雪球股票详情页侧边栏批量添加第三方扩展链接，支持上交所、深交所、SEC:EDGAR、港交所披露易，老虎证券等等等...使用有惊喜
 // @author       garinasset
 // @homepageURL  https://github.com/garinasset/XueqiuResourceLinks
@@ -26,11 +26,19 @@
 
     // 通用缓存封装
     function fetchWithCache(key, fetcher) {
+        console.log(`[Cache Check] Checking cache for key: ${key}`);
         return new Promise(resolve => {
             const cached = sessionStorage.getItem(key);
-            if (cached) return resolve(cached);
+            if (cached) {
+                console.log(`[Cache Hit] Cache found for key: ${key}`);
+                return resolve(cached);
+            }
+            console.log(`[Cache Miss] Cache not found for key: ${key}, fetching...`);
             fetcher().then(result => {
-                if (result != null) sessionStorage.setItem(key, result);
+                if (result != null) {
+                    console.log(`[Cache Save] Storing result in cache for key: ${key}`);
+                    sessionStorage.setItem(key, result);
+                }
                 resolve(result);
             }).catch(err => {
                 console.error(`[Cache Error] ${key}:`, err);
@@ -42,9 +50,16 @@
     // 股票信息解析
     function parseStockInfo() {
         const el = document.querySelector('h1.stock-name');
-        if (!el) return null;
+        if (!el) {
+            console.warn('[Stock Info Error] Could not find stock name element');
+            return null;
+        }
         const match = el.textContent.match(/\((SH|SZ|NASDAQ|NYSE|PINK|HK):([\w\d]+)\)/i);
-        if (!match) return null;
+        if (!match) {
+            console.warn('[Stock Info Error] Could not match stock code and exchange');
+            return null;
+        }
+        console.log(`[Stock Info] Exchange: ${match[1].toUpperCase()}, Code: ${match[2].toUpperCase()}`);
         return { exchange: match[1].toUpperCase(), code: match[2].toUpperCase() };
     }
 
@@ -53,13 +68,17 @@
 
     // 上证 UID 查询
     function fetchSseUid(stockCode) {
+        console.log(`[Fetching] Fetching SSE UID for stock: ${stockCode}`);
         return fetchWithCache('sse_uid_' + stockCode, () => new Promise((resolve, reject) => {
             GM_xmlhttpRequest({
                 method: 'POST',
                 url: 'https://sns.sseinfo.com/ajax/getCompany.do',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 data: 'data=' + stockCode,
-                onload: res => resolve(res.responseText.trim()),
+                onload: res => {
+                    console.log(`[SSE UID Fetch] Successful for stock: ${stockCode}`);
+                    resolve(res.responseText.trim());
+                },
                 onerror: (err) => {
                     console.error(`[Fetch Error] SSE UID for ${stockCode}:`, err);
                     resolve(null);
@@ -70,6 +89,7 @@
 
     // 深交所 orgId 查询
     function fetchSzOrgId(stockCode) {
+        console.log(`[Fetching] Fetching SZ OrgId for stock: ${stockCode}`);
         return fetchWithCache('sz_orgid_' + stockCode, () => new Promise(resolve => {
             GM_xmlhttpRequest({
                 method: 'POST',
@@ -80,6 +100,7 @@
                     try {
                         const json = JSON.parse(res.responseText);
                         const orgId = json?.data?.[0]?.secid || null;
+                        console.log(`[SZ OrgId Fetch] Result for stock ${stockCode}: ${orgId}`);
                         resolve(orgId);
                     } catch (error) {
                         console.error('[Parse Error] Failed to parse SZ orgId:', error);
@@ -97,6 +118,7 @@
     const SEC_JSON_URL = 'https://www.sec.gov/files/company_tickers.json';
     // SEC CIK 查询
     function fetchUsCik(ticker) {
+        console.log(`[Fetching] Fetching SEC CIK for ticker: ${ticker}`);
         return fetchWithCache('us_cik_' + ticker, () => new Promise(resolve => {
             GM_xmlhttpRequest({
                 method: 'GET',
@@ -106,6 +128,7 @@
                         const data = JSON.parse(res.responseText);
                         const entry = Object.values(data).find(item => item.ticker.toUpperCase() === ticker.toUpperCase());
                         const cik = entry?.cik_str != null ? String(entry.cik_str).padStart(10, '0') : null;
+                        console.log(`[SEC CIK Fetch] Result for ticker ${ticker}: ${cik}`);
                         resolve(cik);
                     } catch (error) {
                         console.error('[Parse Error] Failed to parse SEC CIK:', error);
@@ -122,6 +145,7 @@
 
     // 港股 stockId 查询
     function fetchHkStockId(code) {
+        console.log(`[Fetching] Fetching HK Stock ID for code: ${code}`);
         return fetchWithCache('hk_stockid_' + code, () => new Promise(resolve => {
             const url = `https://www1.hkexnews.hk/search/prefix.do?&callback=callback&lang=ZH&type=A&name=${encodeURIComponent(code)}`;
             GM_xmlhttpRequest({
@@ -133,6 +157,7 @@
                         const jsonText = text.replace(/^callback\(/, '').replace(/\);$/, '');
                         const json = JSON.parse(jsonText);
                         const stockId = json?.stockInfo?.[0]?.stockId || null;
+                        console.log(`[HK StockId Fetch] Result for code ${code}: ${stockId}`);
                         resolve(stockId);
                     } catch (error) {
                         console.error('[Parse Error] Failed to parse HK stockId:', error);
@@ -157,7 +182,10 @@
     };
 
     const config = EXCHANGE_MAP[stock.exchange];
-    if (!config) return;
+    if (!config) {
+        console.warn('[Exchange Error] Unsupported exchange:', stock.exchange);
+        return;
+    }
 
     const thirdPartyResources = [
         { exchange: stock.exchange, urlFetcher: () => config.fetcher(stock.code).then(config.buildLink).catch(err => console.error(`[Error] Failed to fetch for ${stock.code}:`, err)) }
@@ -208,8 +236,11 @@
     // 使用 async/await 确保资源请求顺序处理
     async function fetchLinks() {
         try {
+            console.log('[Fetching] Fetching third-party resources...');
             const results = await Promise.all(thirdPartyResources.map(r => r.urlFetcher()));
             const filtered = results.filter(r => r);
+            console.log(`[Fetching] ${filtered.length} valid resources fetched`);
+
             filtered.forEach((data, i) => {
                 const span = document.createElement('span');
                 span.className = 'third-party-links__item';
