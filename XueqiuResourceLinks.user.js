@@ -13,21 +13,18 @@
 // @run-at       document-end
 // @grant        GM_xmlhttpRequest
 // @license      MIT
-
-// 同源策略、跨域显式授权
-// @connect      www.laohu8.com  // 老虎证券
-// @connect      www.sec.gov      // SEC
-// @connect      www.hkexnews.hk  // 港交所
-// @connect      stocktwits.com   // Stocktwits
-// @connect      sns.sseinfo.com  // 上交所 e 互动
-// @connect      irm.cninfo.com.cn  // 深交所 互动易
-
+// @connect      www.laohu8.com
+// @connect      www.sec.gov
+// @connect      www.hkexnews.hk
+// @connect      stocktwits.com
+// @connect      sns.sseinfo.com
+// @connect      irm.cninfo.com.cn
 // ==/UserScript==
-
 
 (function () {
     'use strict';
 
+    // 通用缓存封装
     function fetchWithCache(key, fetcher) {
         return new Promise(resolve => {
             const cached = sessionStorage.getItem(key);
@@ -35,10 +32,14 @@
             fetcher().then(result => {
                 if (result != null) sessionStorage.setItem(key, result);
                 resolve(result);
-            }).catch(() => resolve(null));
+            }).catch(err => {
+                console.error(`[Cache Error] ${key}:`, err);
+                resolve(null);
+            });
         });
     }
 
+    // 股票信息解析
     function parseStockInfo() {
         const el = document.querySelector('h1.stock-name');
         if (!el) return null;
@@ -50,19 +51,24 @@
     const stock = parseStockInfo();
     if (!stock) return;
 
+    // 上证 UID 查询
     function fetchSseUid(stockCode) {
-        return fetchWithCache('sse_uid_' + stockCode, () => new Promise(resolve => {
+        return fetchWithCache('sse_uid_' + stockCode, () => new Promise((resolve, reject) => {
             GM_xmlhttpRequest({
                 method: 'POST',
                 url: 'https://sns.sseinfo.com/ajax/getCompany.do',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 data: 'data=' + stockCode,
                 onload: res => resolve(res.responseText.trim()),
-                onerror: () => resolve(null)
+                onerror: (err) => {
+                    console.error(`[Fetch Error] SSE UID for ${stockCode}:`, err);
+                    resolve(null);
+                }
             });
         }));
     }
 
+    // 深交所 orgId 查询
     function fetchSzOrgId(stockCode) {
         return fetchWithCache('sz_orgid_' + stockCode, () => new Promise(resolve => {
             GM_xmlhttpRequest({
@@ -75,16 +81,21 @@
                         const json = JSON.parse(res.responseText);
                         const orgId = json?.data?.[0]?.secid || null;
                         resolve(orgId);
-                    } catch {
+                    } catch (error) {
+                        console.error('[Parse Error] Failed to parse SZ orgId:', error);
                         resolve(null);
                     }
                 },
-                onerror: () => resolve(null)
+                onerror: (err) => {
+                    console.error('[Fetch Error] SZ orgId:', err);
+                    resolve(null);
+                }
             });
         }));
     }
 
     const SEC_JSON_URL = 'https://www.sec.gov/files/company_tickers.json';
+    // SEC CIK 查询
     function fetchUsCik(ticker) {
         return fetchWithCache('us_cik_' + ticker, () => new Promise(resolve => {
             GM_xmlhttpRequest({
@@ -96,15 +107,20 @@
                         const entry = Object.values(data).find(item => item.ticker.toUpperCase() === ticker.toUpperCase());
                         const cik = entry?.cik_str != null ? String(entry.cik_str).padStart(10, '0') : null;
                         resolve(cik);
-                    } catch {
+                    } catch (error) {
+                        console.error('[Parse Error] Failed to parse SEC CIK:', error);
                         resolve(null);
                     }
                 },
-                onerror: () => resolve(null)
+                onerror: (err) => {
+                    console.error('[Fetch Error] SEC CIK:', err);
+                    resolve(null);
+                }
             });
         }));
     }
 
+    // 港股 stockId 查询
     function fetchHkStockId(code) {
         return fetchWithCache('hk_stockid_' + code, () => new Promise(resolve => {
             const url = `https://www1.hkexnews.hk/search/prefix.do?&callback=callback&lang=ZH&type=A&name=${encodeURIComponent(code)}`;
@@ -118,11 +134,15 @@
                         const json = JSON.parse(jsonText);
                         const stockId = json?.stockInfo?.[0]?.stockId || null;
                         resolve(stockId);
-                    } catch {
+                    } catch (error) {
+                        console.error('[Parse Error] Failed to parse HK stockId:', error);
                         resolve(null);
                     }
                 },
-                onerror: () => resolve(null)
+                onerror: (err) => {
+                    console.error('[Fetch Error] HK stockId:', err);
+                    resolve(null);
+                }
             });
         }));
     }
@@ -140,7 +160,7 @@
     if (!config) return;
 
     const thirdPartyResources = [
-        { exchange: stock.exchange, urlFetcher: () => config.fetcher(stock.code).then(config.buildLink) }
+        { exchange: stock.exchange, urlFetcher: () => config.fetcher(stock.code).then(config.buildLink).catch(err => console.error(`[Error] Failed to fetch for ${stock.code}:`, err)) }
     ];
 
     if (['NASDAQ', 'NYSE', 'PINK', 'HK'].includes(stock.exchange)) {
@@ -185,24 +205,32 @@
         document.head.appendChild(style);
     }
 
-    Promise.all(thirdPartyResources.map(r => r.urlFetcher())).then(results => {
-        const filtered = results.filter(r => r);
-        filtered.forEach((data, i) => {
-            const span = document.createElement('span');
-            span.className = 'third-party-links__item';
-            span.innerHTML = `<a href="${data.url}" target="_blank">
-                <img class="third-party-links__icon" src="${data.favicon}" alt="">
-                <span class="third-party-links__text">${data.text}</span>
-            </a>`;
-            container.appendChild(span);
+    // 使用 async/await 确保资源请求顺序处理
+    async function fetchLinks() {
+        try {
+            const results = await Promise.all(thirdPartyResources.map(r => r.urlFetcher()));
+            const filtered = results.filter(r => r);
+            filtered.forEach((data, i) => {
+                const span = document.createElement('span');
+                span.className = 'third-party-links__item';
+                span.innerHTML = `<a href="${data.url}" target="_blank">
+                    <img class="third-party-links__icon" src="${data.favicon}" alt="">
+                    <span class="third-party-links__text">${data.text}</span>
+                </a>`;
+                container.appendChild(span);
 
-            if (i < filtered.length - 1) {
-                const sep = document.createElement('span');
-                sep.className = 'third-party-links__separator';
-                sep.textContent = '·'; // 可替换为 / 或 |
-                container.appendChild(sep);
-            }
-        });
-    });
+                if (i < filtered.length - 1) {
+                    const sep = document.createElement('span');
+                    sep.className = 'third-party-links__separator';
+                    sep.textContent = '·'; // 可替换为 / 或 |
+                    container.appendChild(sep);
+                }
+            });
+        } catch (error) {
+            console.error('[Error] Failed to fetch third-party resources:', error);
+        }
+    }
+
+    fetchLinks();
 
 })();
