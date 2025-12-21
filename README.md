@@ -1,6 +1,6 @@
 # XueqiuResourceLinks
 
-**XueqiuResourceLinks**（雪球 · 第三方资源扩展）是一个 Tampermonkey/Greasemonkey 用户脚本，用于在雪球股票详情页侧边栏批量添加第三方资源链接，支持上交所e互动、深交所互动易、SEC EDGAR、港交所披露易，老虎证券，未来战略是扩展更多资源。
+**XueqiuResourceLinks**（雪球 · 第三方资源扩展）是一个 Tampermonkey/Greasemonkey 用户脚本，用于在雪球股票详情页侧边栏批量添加第三方资源链接，支持上交所e互动、深交所互动易、SEC EDGAR、港交所披露易，老虎证券，Stocktwits等等等...未来战略是扩展更多资源。
 
 https://github.com/user-attachments/assets/f42a0cf6-aade-4f9e-9cf0-a504292e00e3
 
@@ -14,7 +14,9 @@ https://github.com/user-attachments/assets/f42a0cf6-aade-4f9e-9cf0-a504292e00e3
   - 深交所：深交所互动易  
   - 美股：SEC EDGAR  
   - 港股：披露易
-  - 美港股（NASDAQ/NYSE）：老虎证券  
+  - 美港股（NASDAQ/NYSE）：老虎证券
+  - 等等等.... 使用有惊喜
+
 - 第三方资源可扩展，通过数组轻松添加更多链接
 - 使用 sessionStorage 缓存请求结果，减少网络请求
 - 样式统一，展示美观
@@ -36,6 +38,7 @@ https://github.com/user-attachments/assets/f42a0cf6-aade-4f9e-9cf0-a504292e00e3
 - 美股（NASDAQ/NYSE）：SEC EDGAR  
 - 香港交易所：披露易
 - 美港股（NASDAQ/NYSE）：老虎证券
+- 等等等...使用有惊喜
 
 > 未来可通过 `thirdPartyResources` 数组添加更多自定义资源
 
