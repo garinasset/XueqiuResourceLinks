@@ -2,7 +2,7 @@
 // @name         XueqiuResourceLinks
 // @name:zh-CN   雪球 · 第三方资源扩展
 // @namespace    https://github.com/garinasset/XueqiuResourceLinks
-// @version      7.5.0
+// @version      7.5.1
 // @description  在雪球股票详情页侧边栏批量添加第三方扩展链接（失败资源保留占位），支持上交所、深交所、SEC:EDGAR、港交所披露易、老虎证券等
 // @author       garinasset
 // @homepageURL  https://github.com/garinasset/XueqiuResourceLinks
@@ -17,8 +17,8 @@
 // @connect      stocktwits.com
 // @connect      sns.sseinfo.com
 // @connect      irm.cninfo.com.cn
-// @downloadURL  https://update.greasyfork.org/scripts/559757/XueqiuResourceLinks.user.js
-// @updateURL    https://update.greasyfork.org/scripts/559757/XueqiuResourceLinks.meta.js
+// @downloadURL https://update.greasyfork.org/scripts/559757/XueqiuResourceLinks.user.js
+// @updateURL https://update.greasyfork.org/scripts/559757/XueqiuResourceLinks.meta.js
 // ==/UserScript==
 
 (function () {
@@ -191,6 +191,11 @@
             GM_xmlhttpRequest({
                 method: 'GET',
                 url: SEC_JSON_URL,
+                headers: {
+                  'User-Agent': 'Tampermonkey-XueqiuResourceLinks (+https://github.com/garinasset/XueqiuResourceLinks)',
+                  'Accept': 'application/json'
+                },
+
                 onload: res => {
                     try {
                         const data = JSON.parse(res.responseText);
