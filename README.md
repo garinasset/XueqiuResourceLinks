@@ -1,8 +1,9 @@
 # XueqiuResourceLinks
 
-**XueqiuResourceLinks**（雪球 · 第三方资源扩展）是一个 Tampermonkey/Greasemonkey 用户脚本，实现在雪球股票详情页侧边栏，添加相应“个股”的“第三方资源”，例如上证e互动、深交所互动易、SEC:EDGAR、港交所披露易、Stocktwits等，点击即可跳转到对应个股的第三方资源站点，如此便利研究，提升生产力...未来战略是扩展更多资源。
+**XueqiuResourceLinks**（雪球 · 第三方资源扩展）是一个 Tampermonkey/Greasemonkey 用户脚本：实现在雪球股票详情页侧边栏，添加相应“个股”的“第三方资源”，例如上证e互动、深交所互动易、SEC:EDGAR、港交所披露易、Stocktwits等，点击即可跳转到对应个股的第三方资源站点，以此便利研究，提升生产力...当下正在扩展更多资源。
 
-https://github.com/user-attachments/assets/f42a0cf6-aade-4f9e-9cf0-a504292e00e3
+<img width="2032" height="1094" alt="图片" src="https://github.com/user-attachments/assets/1971611e-8364-4b28-90d3-6159d6b1b557" />
+<img width="2032" height="1094" alt="图片" src="https://github.com/user-attachments/assets/a83c45fc-f5e4-45aa-b252-1e268142c493" />
 
 ---
 
@@ -26,7 +27,7 @@ https://github.com/user-attachments/assets/f42a0cf6-aade-4f9e-9cf0-a504292e00e3
 
 1. 安装 **Tampermonkey** 或 **Greasemonkey** 浏览器扩展
 2. 点击 [安装脚本](https://raw.githubusercontent.com/garinasset/XueqiuResourceLinks/main/XueqiuResourceLinks.user.js) 按钮，自动添加到扩展中
-3. 打开雪球股票详情页，即可在侧边栏看到“第三方资源扩展”链接
+3. 打开雪球股票详情页，即可在侧边栏看到“第三方资源扩展”组件
 
 ---
 
