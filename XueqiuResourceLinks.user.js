@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         XueqiuResourceLinks
-// @name:zh-CN   雪球 · 第三方资源扩展
+// @name:zh      雪球 · 第三方资源扩展
 // @namespace    https://github.com/garinasset/XueqiuResourceLinks
-// @version      7.5.4
+// @version      7.5.5
 // @description  在雪球股票详情页侧边栏，添加相应“个股”的“第三方资源”，例如上证e互动、深交所互动易、SEC:EDGAR、港交所披露易等，点击即可跳转到对应个股的第三方资源站点，便利研究，提升生产力。
 // @author       garinasset
 // @homepageURL  https://github.com/garinasset/XueqiuResourceLinks
@@ -358,7 +358,7 @@
         thirdPartyResources.push({
             exchange: stock.exchange,
             urlFetcher: async () => ({
-                text: '东方财富个股研报',
+                text: '研报中心',
                 url: `https://data.eastmoney.com/report/${stock.code}.html`,
                 favicon: 'https://data.eastmoney.com/favicon.ico'
             })
