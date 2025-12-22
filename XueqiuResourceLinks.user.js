@@ -2,13 +2,11 @@
 // @name         XueqiuResourceLinks
 // @name:zh-CN   雪球 · 第三方资源扩展
 // @namespace    https://github.com/garinasset/XueqiuResourceLinks
-// @version      7.4.0
-// @description  在雪球股票详情页侧边栏批量添加第三方扩展链接，支持上交所、深交所、SEC:EDGAR、港交所披露易，老虎证券等等等...使用有惊喜
+// @version      7.5.0
+// @description  在雪球股票详情页侧边栏批量添加第三方扩展链接（失败资源保留占位），支持上交所、深交所、SEC:EDGAR、港交所披露易、老虎证券等
 // @author       garinasset
 // @homepageURL  https://github.com/garinasset/XueqiuResourceLinks
 // @supportURL   https://github.com/garinasset/XueqiuResourceLinks/issues
-// @updateURL    https://raw.githubusercontent.com/garinasset/XueqiuResourceLinks/main/XueqiuResourceLinks.user.js
-// @downloadURL  https://raw.githubusercontent.com/garinasset/XueqiuResourceLinks/main/XueqiuResourceLinks.user.js
 // @match        https://xueqiu.com/S/*
 // @run-at       document-end
 // @grant        GM_xmlhttpRequest
@@ -19,197 +17,351 @@
 // @connect      stocktwits.com
 // @connect      sns.sseinfo.com
 // @connect      irm.cninfo.com.cn
+// @downloadURL  https://update.greasyfork.org/scripts/559757/XueqiuResourceLinks.user.js
+// @updateURL    https://update.greasyfork.org/scripts/559757/XueqiuResourceLinks.meta.js
 // ==/UserScript==
 
 (function () {
     'use strict';
 
-    // 通用缓存封装
+    /**
+     * 通用缓存封装
+     * - 使用 sessionStorage
+     * - 仅缓存非 null 的成功结果
+     * - 失败统一返回 null，不抛异常，避免中断整体流程
+     */
     function fetchWithCache(key, fetcher) {
-        console.log(`[Cache Check] Checking cache for key: ${key}`);
+        console.log('[Cache] Check key:', key);
+
         return new Promise(resolve => {
             const cached = sessionStorage.getItem(key);
             if (cached) {
-                console.log(`[Cache Hit] Cache found for key: ${key}`);
+                console.log('[Cache] Hit:', key);
                 return resolve(cached);
             }
-            console.log(`[Cache Miss] Cache not found for key: ${key}, fetching...`);
-            fetcher().then(result => {
+
+            console.log('[Cache] Miss, fetching:', key);
+
+            fetcher()
+                .then(result => {
                 if (result != null) {
-                    console.log(`[Cache Save] Storing result in cache for key: ${key}`);
+                    console.log('[Cache] Save:', key);
                     sessionStorage.setItem(key, result);
                 }
                 resolve(result);
-            }).catch(err => {
-                console.error(`[Cache Error] ${key}:`, err);
+            })
+                .catch(err => {
+                console.log('[Cache] Fetch error:', key, err);
                 resolve(null);
             });
         });
     }
 
-    // 股票信息解析
+    /**
+     * 从雪球页面解析当前股票的交易所与代码
+     *
+     * 失败场景：
+     * - 页面结构变化
+     * - 非标准雪球股票页面
+     *
+     * @returns {{exchange: string, code: string} | null}
+     */
     function parseStockInfo() {
         const el = document.querySelector('h1.stock-name');
         if (!el) {
-            console.warn('[Stock Info Error] Could not find stock name element');
+            console.log('[Stock] stock-name element not found');
             return null;
         }
-        const match = el.textContent.match(/\((SH|SZ|NASDAQ|NYSE|PINK|HK|AMEX):([\w\d]+)\)/i);
+
+        const match = el.textContent.match(
+            /\((SH|SZ|NASDAQ|NYSE|PINK|HK|AMEX):([\w\d\.-]+)\)/i
+        );
+
         if (!match) {
-            console.warn('[Stock Info Error] Could not match stock code and exchange');
+            console.log('[Stock] Failed to parse exchange/code');
             return null;
         }
-        console.log(`[Stock Info] Exchange: ${match[1].toUpperCase()}, Code: ${match[2].toUpperCase()}`);
-        return { exchange: match[1].toUpperCase(), code: match[2].toUpperCase() };
+
+        const info = {
+            exchange: match[1].toUpperCase(),
+            code: match[2].toUpperCase()
+        };
+
+        console.log('[Stock] Parsed:', info);
+        return info;
     }
 
     const stock = parseStockInfo();
     if (!stock) return;
 
-    // 上证 UID 查询
+    /**
+     * 查询上交所 e互动 UID
+     *
+     * 说明：
+     * - UID 是后续构造URL 的唯一标识
+     * - 接口可能变动或者偶发空返回，需容错
+     */
     function fetchSseUid(stockCode) {
-        console.log(`[Fetching] Fetching SSE UID for stock: ${stockCode}`);
-        return fetchWithCache('sse_uid_' + stockCode, () => new Promise((resolve, reject) => {
+        const SSEINFO_URL = 'https://sns.sseinfo.com/ajax/getCompany.do';
+
+        console.log('[Fetch] SSE UID use Stock code:', stockCode);
+
+        return fetchWithCache('sse_uid_' + stockCode, () =>
+                              new Promise(resolve => {
             GM_xmlhttpRequest({
                 method: 'POST',
-                url: 'https://sns.sseinfo.com/ajax/getCompany.do',
+                url: SSEINFO_URL,
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 data: 'data=' + stockCode,
                 onload: res => {
-                    console.log(`[SSE UID Fetch] Successful for stock: ${stockCode}`);
-                    resolve(res.responseText.trim());
+                    try {
+                        const uid = res.responseText.trim();
+                        console.log('[Fetch] SSE UID result:', uid);
+                        resolve(uid);
+                    } catch (e) {
+                        console.log('[Parse] SSE UID failed:', e);
+                        resolve(null);
+                    }
                 },
-                onerror: (err) => {
-                    console.error(`[Fetch Error] SSE UID for ${stockCode}:`, err);
+                onerror: err => {
+                    console.log('[Fetch] SSE UID error:', err);
                     resolve(null);
                 }
             });
-        }));
+        })
+                             );
     }
 
-    // 深交所 orgId 查询
+    /**
+     * 深交所：查询 orgId（互动易）
+     *
+     * 说明：
+     * - orgId 是后续构造URL 的唯一标识
+     * - 接口可能变动或者偶发空返回，需容错
+     */
     function fetchSzOrgId(stockCode) {
-        console.log(`[Fetching] Fetching SZ OrgId for stock: ${stockCode}`);
-        return fetchWithCache('sz_orgid_' + stockCode, () => new Promise(resolve => {
+        const CNINFO_URL = 'https://irm.cninfo.com.cn/newircs/index/queryKeyboardInfo';
+
+        console.log('[Fetch] SZ orgId use Stock code:', stockCode);
+
+        return fetchWithCache('sz_orgid_' + stockCode, () =>
+                              new Promise(resolve => {
             GM_xmlhttpRequest({
                 method: 'POST',
-                url: 'https://irm.cninfo.com.cn/newircs/index/queryKeyboardInfo',
+                url: CNINFO_URL,
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 data: 'keyWord=' + stockCode,
                 onload: res => {
                     try {
                         const json = JSON.parse(res.responseText);
                         const orgId = json?.data?.[0]?.secid || null;
-                        console.log(`[SZ OrgId Fetch] Result for stock ${stockCode}: ${orgId}`);
+                        console.log('[Fetch] SZ orgId result:', orgId);
                         resolve(orgId);
-                    } catch (error) {
-                        console.error('[Parse Error] Failed to parse SZ orgId:', error);
+                    } catch (e) {
+                        console.log('[Parse] SZ orgId failed:', e);
                         resolve(null);
                     }
                 },
-                onerror: (err) => {
-                    console.error('[Fetch Error] SZ orgId:', err);
+                onerror: err => {
+                    console.log('[Fetch] SZ orgId error:', err);
                     resolve(null);
                 }
             });
-        }));
+        })
+                             );
     }
 
-    const SEC_JSON_URL = 'https://www.sec.gov/files/company_tickers.json';
-    // SEC CIK 查询
+
+    /**
+     * 美股：通过 ticker 查询 SEC CIK
+     * 注意：SEC 使用 "-" 而非 "."
+     *
+     * 说明：
+     * - CIK 是后续构造URL 的唯一标识
+     * - 接口可能变动或者偶发空返回，需容错
+     */
     function fetchUsCik(ticker) {
-        console.log(`[Fetching] Fetching SEC CIK for ticker: ${ticker}`);
-        return fetchWithCache('us_cik_' + ticker, () => new Promise(resolve => {
+        const SEC_JSON_URL = 'https://www.sec.gov/files/company_tickers.json';
+
+        ticker = ticker.replace('.', '-');
+        console.log('[Fetch] SEC CIK use Stock code:', ticker);
+
+        return fetchWithCache('us_cik_' + ticker, () =>
+                              new Promise(resolve => {
             GM_xmlhttpRequest({
                 method: 'GET',
                 url: SEC_JSON_URL,
                 onload: res => {
                     try {
                         const data = JSON.parse(res.responseText);
-                        const entry = Object.values(data).find(item => item.ticker.toUpperCase() === ticker.toUpperCase());
-                        const cik = entry?.cik_str != null ? String(entry.cik_str).padStart(10, '0') : null;
-                        console.log(`[SEC CIK Fetch] Result for ticker ${ticker}: ${cik}`);
+                        const entry = Object.values(data).find(
+                            item => item.ticker.toUpperCase() === ticker.toUpperCase()
+                        );
+                        const cik = entry?.cik_str != null
+                        ? String(entry.cik_str).padStart(10, '0')
+                        : null;
+
+                        console.log('[Fetch] SEC CIK result:', cik);
                         resolve(cik);
-                    } catch (error) {
-                        console.error('[Parse Error] Failed to parse SEC CIK:', error);
+                    } catch (e) {
+                        console.log('[Parse] SEC CIK failed:', e);
                         resolve(null);
                     }
                 },
-                onerror: (err) => {
-                    console.error('[Fetch Error] SEC CIK:', err);
+                onerror: err => {
+                    console.log('[Fetch] SEC CIK error:', err);
                     resolve(null);
                 }
             });
-        }));
+        })
+                             );
     }
 
-    // 港股 stockId 查询
+    /**
+     * 港股：查询 stockId（披露易）
+     *
+     * 说明：
+     * - stockId 是后续构造URL 的唯一标识
+     * - 接口可能变动或者偶发空返回，需容错
+     */
     function fetchHkStockId(code) {
-        console.log(`[Fetching] Fetching HK Stock ID for code: ${code}`);
-        return fetchWithCache('hk_stockid_' + code, () => new Promise(resolve => {
-            const url = `https://www1.hkexnews.hk/search/prefix.do?&callback=callback&lang=ZH&type=A&name=${encodeURIComponent(code)}`;
+        const HKEXNEWS_URL = `https://www1.hkexnews.hk/search/prefix.do?callback=callback&lang=ZH&type=A&name=${encodeURIComponent(code)}`;
+
+        console.log('[Fetch] HK stockId use Stock code:', code);
+
+        return fetchWithCache('hk_stockid_' + code, () =>
+                              new Promise(resolve => {
             GM_xmlhttpRequest({
                 method: 'GET',
-                url,
+                url: HKEXNEWS_URL,
                 onload: res => {
                     try {
                         const text = res.responseText.trim();
-                        const jsonText = text.replace(/^callback\(/, '').replace(/\);$/, '');
+                        const jsonText = text
+                        .replace(/^callback\(/, '')
+                        .replace(/\);$/, '');
                         const json = JSON.parse(jsonText);
                         const stockId = json?.stockInfo?.[0]?.stockId || null;
-                        console.log(`[HK StockId Fetch] Result for code ${code}: ${stockId}`);
+
+                        console.log('[Fetch] HK stockId result:', stockId);
                         resolve(stockId);
-                    } catch (error) {
-                        console.error('[Parse Error] Failed to parse HK stockId:', error);
+                    } catch (e) {
+                        console.log('[Parse] HK stockId failed:', e);
                         resolve(null);
                     }
                 },
-                onerror: (err) => {
-                    console.error('[Fetch Error] HK stockId:', err);
+                onerror: err => {
+                    console.log('[Fetch] HK stockId error:', err);
                     resolve(null);
                 }
             });
-        }));
+        })
+                             );
     }
 
+    /**
+     * 不同交易所的查询与链接构建规则
+     */
     const EXCHANGE_MAP = {
-        'SH': { fetcher: fetchSseUid, buildLink: uid => uid && { text: '上证 e 互动', url: `https://sns.sseinfo.com/company.do?uid=${uid}`, favicon: 'https://sns.sseinfo.com/favicon.ico' } },
-        'SZ': { fetcher: fetchSzOrgId, buildLink: orgId => orgId && { text: '深交所互动易', url: `https://irm.cninfo.com.cn/ircs/company/companyDetail?stockcode=${stock.code}&orgId=${orgId}`, favicon: 'https://irm.cninfo.com.cn/favicon.ico' } },
-        'NASDAQ': { fetcher: fetchUsCik, buildLink: cik => cik && { text: 'SEC：EDGAR', url: `https://www.sec.gov/edgar/browse/?CIK=${cik}`, favicon: 'https://www.sec.gov/favicon.ico' } },
-        'NYSE': { fetcher: fetchUsCik, buildLink: cik => cik && { text: 'SEC：EDGAR', url: `https://www.sec.gov/edgar/browse/?CIK=${cik}`, favicon: 'https://www.sec.gov/favicon.ico' } },
-        'PINK': { fetcher: fetchUsCik, buildLink: cik => cik && { text: 'SEC：EDGAR', url: `https://www.sec.gov/edgar/browse/?CIK=${cik}`, favicon: 'https://www.sec.gov/favicon.ico' } },
-        'AMEX': { fetcher: fetchUsCik, buildLink: cik => cik && { text: 'SEC：EDGAR', url: `https://www.sec.gov/edgar/browse/?CIK=${cik}`, favicon: 'https://www.sec.gov/favicon.ico' } },
-        'HK': { fetcher: fetchHkStockId, buildLink: stockId => stockId && { text: '披露易', url: `https://www1.hkexnews.hk/search/titlesearch.xhtml?lang=zh&stockId=${stockId}&category=0&market=SEHK`, favicon: 'https://www.hkexnews.hk/ncms/images/favicon.ico' } }
+        SH: {
+            fetcher: fetchSseUid,
+            buildLink: uid =>
+            uid && {
+                text: '上证 e 互动',
+                url: `https://sns.sseinfo.com/company.do?uid=${uid}`,
+                favicon: 'https://sns.sseinfo.com/favicon.ico'
+            }
+        },
+        SZ: {
+            fetcher: fetchSzOrgId,
+            buildLink: orgId =>
+            orgId && {
+                text: '深交所互动易',
+                url: `https://irm.cninfo.com.cn/ircs/company/companyDetail?stockcode=${stock.code}&orgId=${orgId}`,
+                favicon: 'https://irm.cninfo.com.cn/favicon.ico'
+            }
+        },
+        NASDAQ: { fetcher: fetchUsCik, buildLink: buildSecLink },
+        NYSE:   { fetcher: fetchUsCik, buildLink: buildSecLink },
+        PINK:   { fetcher: fetchUsCik, buildLink: buildSecLink },
+        AMEX:   { fetcher: fetchUsCik, buildLink: buildSecLink },
+        HK: {
+            fetcher: fetchHkStockId,
+            buildLink: stockId =>
+            stockId && {
+                text: '披露易',
+                url: `https://www1.hkexnews.hk/search/titlesearch.xhtml?lang=zh&stockId=${stockId}&category=0&market=SEHK`,
+                favicon: 'https://www.hkexnews.hk/ncms/images/favicon.ico'
+            }
+        }
     };
+
+    function buildSecLink(cik) {
+        return (
+            cik && {
+                text: 'SEC：EDGAR',
+                url: `https://www.sec.gov/edgar/browse/?CIK=${cik}`,
+                favicon: 'https://www.sec.gov/favicon.ico'
+            }
+        );
+    }
 
     const config = EXCHANGE_MAP[stock.exchange];
     if (!config) {
-        console.warn('[Exchange Error] Unsupported exchange:', stock.exchange);
+        console.log('[Exchange] Unsupported:', stock.exchange);
         return;
     }
 
+    /**
+     * 第三方资源定义列表
+     * 重要设计：
+     * - 每一个元素都代表一个“资源位”
+     * - 即使加载失败（返回 null），前端也会保留占位
+     */
     const thirdPartyResources = [
-        { exchange: stock.exchange, urlFetcher: () => config.fetcher(stock.code).then(config.buildLink).catch(err => console.error(`[Error] Failed to fetch for ${stock.code}:`, err)) }
+        {
+            exchange: stock.exchange,
+            urlFetcher: () =>
+            config
+            .fetcher(stock.code)
+            .then(config.buildLink)
+            .catch(err => {
+                console.log('[Fetch] Primary resource failed:', err);
+                return null;
+            })
+        }
     ];
 
     if (['NASDAQ', 'NYSE', 'PINK', 'HK', 'AMEX'].includes(stock.exchange)) {
         thirdPartyResources.push({
             exchange: stock.exchange,
-            urlFetcher: async () => ({ text: '老虎证券', url: `https://www.laohu8.com/stock/${stock.code}`, favicon: 'https://www.laohu8.com/favicon.ico' })
+            urlFetcher: async () => ({
+                text: '老虎证券',
+                url: `https://www.laohu8.com/stock/${stock.code}`,
+                favicon: 'https://www.laohu8.com/favicon.ico'
+            })
         });
     }
 
     if (['NASDAQ', 'NYSE', 'PINK', 'AMEX'].includes(stock.exchange)) {
         thirdPartyResources.push({
             exchange: stock.exchange,
-            urlFetcher: async () => ({ text: 'Stocktwits', url: `https://stocktwits.com/symbol/${stock.code}`, favicon: 'https://stocktwits.com/favicon.ico' })
+            urlFetcher: async () => ({
+                text: 'Stocktwits',
+                url: `https://stocktwits.com/symbol/${stock.code}`,
+                favicon: 'https://stocktwits.com/favicon.ico'
+            })
         });
     }
 
     if (['SH', 'SZ'].includes(stock.exchange)) {
         thirdPartyResources.push({
             exchange: stock.exchange,
-            urlFetcher: async () => ({ text: '东方财富个股研报', url: `https://data.eastmoney.com/report/${stock.code}.html`, favicon: 'https://data.eastmoney.com/favicon.ico' })
+            urlFetcher: async () => ({
+                text: '东方财富个股研报',
+                url: `https://data.eastmoney.com/report/${stock.code}.html`,
+                favicon: 'https://data.eastmoney.com/favicon.ico'
+            })
         });
     }
 
@@ -221,54 +373,187 @@
         widget = document.createElement('div');
         widget.className = 'stock-widget';
         widget.setAttribute('data-thirdparty', 'true');
-        widget.innerHTML = `<div class="widget-header"><div class="title">第三方资源扩展</div></div><div class="widget-content third-party-links"></div>`;
+        widget.innerHTML =
+            '<div class="widget-header"><div class="title">第三方资源扩展</div></div>' +
+            '<div class="widget-content third-party-links"></div>';
+
         const firstWidget = side.querySelector('.stock-widget');
         side.insertBefore(widget, firstWidget?.nextSibling || side.firstChild);
     }
+
     const container = widget.querySelector('.third-party-links');
 
     if (!document.getElementById('third-party-links-style')) {
         const style = document.createElement('style');
         style.id = 'third-party-links-style';
         style.textContent = `
-            .third-party-links { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
-            .third-party-links__item { display: inline-flex; align-items: center; }
-            .third-party-links__item a { display: inline-flex; align-items: center; text-decoration: none; color: #333; padding: 4px 0; }
-            .third-party-links__item a:hover { text-decoration: underline; }
-            .third-party-links__icon { width: 16px; height: 16px; margin-right: 4px; }
-            .third-party-links__separator { display: inline-flex; align-items: center; margin: 0 4px; color: #888; }
+            .third-party-links { display:flex; flex-wrap:wrap; align-items:center; gap:4px; }
+            .third-party-links__item { display:inline-flex; align-items:center; }
+            .third-party-links__item a { display:inline-flex; align-items:center; text-decoration:none; color:#333; padding:4px 0; }
+            .third-party-links__item a:hover { text-decoration:underline; }
+            .third-party-links__icon { width:16px; height:16px; margin-right:4px; }
+            .third-party-links__separator { margin:0 4px; color:#888; }
         `;
         document.head.appendChild(style);
     }
 
-    // 使用 async/await 确保资源请求顺序处理
+    /**
+     * 拉取并渲染第三方资源入口
+     *
+     * 设计目标：
+     * 1. 所有资源并行请求，但前端渲染顺序必须稳定
+     * 2. 单个资源失败不影响整体渲染（失败资源保留占位）
+     * 3. 明确区分「尚无资源定义」与「资源加载失败」
+     */
     async function fetchLinks() {
+
+        /**
+     * 创建一个“状态占位节点”
+     *
+     * 该函数统一生成以下几类 UI 状态：
+     * - 加载中（带动画）
+     * - 加载失败
+     * - 尚无资源
+     * - 未知内部错误
+     *
+     * 统一封装的目的：
+     * - 避免重复创建 DOM 结构
+     * - 保证不同状态在布局和尺寸上的一致性
+     */
+        function createStatusItem({ text, color = 'red', animate = false }) {
+            const span = document.createElement('span');
+            span.className = 'third-party-links__item';
+
+            span.innerHTML = `
+            <div class="third-party-links__item">
+                <div class="third-party-links__icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50">
+                        <!-- 圆环主体：加载中时用于动画，失败状态仅作为图形容器 -->
+                        <circle cx="25" cy="25" r="20" stroke="${color}" stroke-width="4" fill="none">
+                            ${
+                                // animate=true 时，显示循环颜色动画，表示“正在处理”
+                                animate
+                ? '<animate attributeName="stroke" values="blue;yellow;red;blue" dur="2s" repeatCount="indefinite"/>'
+            : ''
+        }
+                        </circle>
+                        ${
+                            // animate=false 时，绘制一个“叉号”，表示终态（失败 / 空资源 / 错误）
+                            animate
+                ? ''
+            : `
+                                    <line x1="15" y1="15" x2="35" y2="35" stroke="${color}" stroke-width="4"/>
+                                    <line x1="35" y1="15" x2="15" y2="35" stroke="${color}" stroke-width="4"/>
+                                  `
+                        }
+                    </svg>
+                </div>
+                <span class="third-party-links__text">${text}</span>
+            </div>
+        `;
+            return span;
+        }
+
+        // 预先构建所有“状态节点模板”，后续通过 cloneNode 使用
+        const loadingItem = createStatusItem({ text: '正在加载···', color: 'blue', animate: true });
+        const loadFailItem = createStatusItem({ text: '加载失败' });
+        const emptyItem = createStatusItem({ text: '尚无资源' });
+        const unknownError = createStatusItem({ text: '内部错误' });
+
         try {
-            console.log('[Fetching] Fetching third-party resources...');
-            const results = await Promise.all(thirdPartyResources.map(r => r.urlFetcher()));
-            const filtered = results.filter(r => r);
-            console.log(`[Fetching] ${filtered.length} valid resources fetched`);
+            console.log('[Fetch] Start');
 
-            filtered.forEach((data, i) => {
-                const span = document.createElement('span');
-                span.className = 'third-party-links__item';
-                span.innerHTML = `<a href="${data.url}" target="_blank">
-                    <img class="third-party-links__icon" src="${data.favicon}" alt="">
-                    <span class="third-party-links__text">${data.text}</span>
-                </a>`;
-                container.appendChild(span);
+            // 首次进入时，先注入“加载中”占位，明确告知用户正在处理
+            container.appendChild(loadingItem);
 
-                if (i < filtered.length - 1) {
+            /**
+             * 并行执行所有资源请求
+             *
+             * 约定：
+             * - 每个 urlFetcher 返回：
+             *   - 有效资源对象 → 表示该资源可用
+             *   - null / undefined → 表示该资源加载失败
+             *
+             * Promise.all 不抛弃失败资源，确保结果数组长度与资源定义一一对应
+             */
+            const results = await Promise.all(
+                thirdPartyResources.map(r => r.urlFetcher())
+            );
+
+            // 统计维度：
+            // total  → 定义了多少个资源位
+            // valid  → 实际成功加载的资源数量
+            const total = results.length;
+            const valid = results.filter(Boolean).length;
+
+            console.log('[Fetch] Completed', { total, valid });
+
+            // 所有请求完成后，移除“加载中”状态
+            container.removeChild(loadingItem);
+
+            /**
+             * total === 0 说明：
+             * - 当前股票在逻辑层面没有任何可用的第三方资源定义
+             * - 与“定义了资源但加载失败”是两种不同语义
+             */
+            if (total === 0) {
+                container.appendChild(emptyItem.cloneNode(true));
+                return;
+            }
+
+            /**
+             * 逐个渲染资源位
+             *
+             * 关键设计点：
+             * - 使用 results 的原始顺序
+             * - 无论成功或失败，都渲染一个节点
+             * - 分隔符基于“资源位顺序”，而不是“成功资源数量”
+             */
+            results.forEach((data, index) => {
+
+                // 除第一个资源位外，其余资源位前统一插入分隔符
+                if (index > 0) {
                     const sep = document.createElement('span');
                     sep.className = 'third-party-links__separator';
-                    sep.textContent = '·'; // 可替换为 / 或 |
+                    sep.textContent = '·';
                     container.appendChild(sep);
                 }
+
+                if (data) {
+                    // 成功加载的资源：渲染为可点击链接
+                    const span = document.createElement('span');
+                    span.className = 'third-party-links__item';
+                    span.innerHTML = `
+                    <a href="${data.url}" target="_blank">
+                        <img class="third-party-links__icon" src="${data.favicon}" alt="">
+                        <span class="third-party-links__text">${data.text}</span>
+                    </a>
+                `;
+                    container.appendChild(span);
+                } else {
+                    // 单个资源加载失败：使用失败占位，保持布局与顺序不变
+                    container.appendChild(loadFailItem.cloneNode(true));
+                }
             });
+
         } catch (error) {
-            console.error('[Error] Failed to fetch third-party resources:', error);
+            /**
+             * 兜底异常分支：
+             * - 理论上 Promise.all 内部已吞掉单资源错误
+             * - 此处仅处理真正的“流程级异常”
+             */
+            console.log('[Fetch] Fatal error:', error);
+
+            // 防御性移除：避免 loading 状态残留
+            if (container.contains(loadingItem)) {
+                container.removeChild(loadingItem);
+            }
+
+            // 渲染“未知错误”状态，提示用户异常非资源本身导致
+            container.appendChild(unknownError.cloneNode(true));
         }
     }
+
 
     fetchLinks();
 
