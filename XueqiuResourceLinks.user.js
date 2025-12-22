@@ -2,7 +2,7 @@
 // @name         XueqiuResourceLinks
 // @name:zh-CN   雪球 · 第三方资源扩展
 // @namespace    https://github.com/garinasset/XueqiuResourceLinks
-// @version      7.0.0
+// @version      7.4.0
 // @description  在雪球股票详情页侧边栏批量添加第三方扩展链接，支持上交所、深交所、SEC:EDGAR、港交所披露易，老虎证券等等等...使用有惊喜
 // @author       garinasset
 // @homepageURL  https://github.com/garinasset/XueqiuResourceLinks
@@ -54,7 +54,7 @@
             console.warn('[Stock Info Error] Could not find stock name element');
             return null;
         }
-        const match = el.textContent.match(/\((SH|SZ|NASDAQ|NYSE|PINK|HK):([\w\d]+)\)/i);
+        const match = el.textContent.match(/\((SH|SZ|NASDAQ|NYSE|PINK|HK|AMEX):([\w\d]+)\)/i);
         if (!match) {
             console.warn('[Stock Info Error] Could not match stock code and exchange');
             return null;
@@ -178,6 +178,7 @@
         'NASDAQ': { fetcher: fetchUsCik, buildLink: cik => cik && { text: 'SEC：EDGAR', url: `https://www.sec.gov/edgar/browse/?CIK=${cik}`, favicon: 'https://www.sec.gov/favicon.ico' } },
         'NYSE': { fetcher: fetchUsCik, buildLink: cik => cik && { text: 'SEC：EDGAR', url: `https://www.sec.gov/edgar/browse/?CIK=${cik}`, favicon: 'https://www.sec.gov/favicon.ico' } },
         'PINK': { fetcher: fetchUsCik, buildLink: cik => cik && { text: 'SEC：EDGAR', url: `https://www.sec.gov/edgar/browse/?CIK=${cik}`, favicon: 'https://www.sec.gov/favicon.ico' } },
+        'AMEX': { fetcher: fetchUsCik, buildLink: cik => cik && { text: 'SEC：EDGAR', url: `https://www.sec.gov/edgar/browse/?CIK=${cik}`, favicon: 'https://www.sec.gov/favicon.ico' } },
         'HK': { fetcher: fetchHkStockId, buildLink: stockId => stockId && { text: '披露易', url: `https://www1.hkexnews.hk/search/titlesearch.xhtml?lang=zh&stockId=${stockId}&category=0&market=SEHK`, favicon: 'https://www.hkexnews.hk/ncms/images/favicon.ico' } }
     };
 
@@ -191,14 +192,14 @@
         { exchange: stock.exchange, urlFetcher: () => config.fetcher(stock.code).then(config.buildLink).catch(err => console.error(`[Error] Failed to fetch for ${stock.code}:`, err)) }
     ];
 
-    if (['NASDAQ', 'NYSE', 'PINK', 'HK'].includes(stock.exchange)) {
+    if (['NASDAQ', 'NYSE', 'PINK', 'HK', 'AMEX'].includes(stock.exchange)) {
         thirdPartyResources.push({
             exchange: stock.exchange,
             urlFetcher: async () => ({ text: '老虎证券', url: `https://www.laohu8.com/stock/${stock.code}`, favicon: 'https://www.laohu8.com/favicon.ico' })
         });
     }
 
-    if (['NASDAQ', 'NYSE', 'PINK'].includes(stock.exchange)) {
+    if (['NASDAQ', 'NYSE', 'PINK', 'AMEX'].includes(stock.exchange)) {
         thirdPartyResources.push({
             exchange: stock.exchange,
             urlFetcher: async () => ({ text: 'Stocktwits', url: `https://stocktwits.com/symbol/${stock.code}`, favicon: 'https://stocktwits.com/favicon.ico' })
