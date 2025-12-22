@@ -2,8 +2,8 @@
 // @name         XueqiuResourceLinks
 // @name:zh-CN   雪球 · 第三方资源扩展
 // @namespace    https://github.com/garinasset/XueqiuResourceLinks
-// @version      7.5.2
-// @description  在雪球股票详情页侧边栏批量添加第三方扩展链接（失败资源保留占位），支持上交所、深交所、SEC:EDGAR、港交所披露易、老虎证券等
+// @version      7.5.3
+// @description  在雪球股票详情页侧边栏，添加相应“个股”的“第三方资源扩展”，例如上证e互动、深交所互动易、SEC:EDGAR、港交所披露易等，点击即可跳转到对应个股的第三方资源站点，便利研究，提升生产力。
 // @author       garinasset
 // @homepageURL  https://github.com/garinasset/XueqiuResourceLinks
 // @supportURL   https://github.com/garinasset/XueqiuResourceLinks/issues
