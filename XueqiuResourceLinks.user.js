@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name            雪球 · 第三方资源扩展
 // @namespace       https://github.com/garinasset/XueqiuResourceLinks
-// @version         8.0.0
+// @version         9.0.0
 //
 // @description     在雪球股票详情页侧边栏，添加相应“个股”的“第三方资源”，例如上证 e 互动、深交所互动易、SEC: EDGAR、港交所披露易等，点击即可跳转到对应个股的第三方资源站点，便利研究，提升生产力。
 //
@@ -337,7 +337,31 @@
                     })
         }
     ];
-    //港股｜美股
+    // 港股｜美股 | A 股
+    if (['SH', 'SZ', 'HK', 'NASDAQ', 'NYSE', 'PINK', 'AMEX', 'ARCA'].includes(stock.exchange)) {
+        thirdPartyResources.push({
+            exchange: stock.exchange,
+            urlFetcher: async () => {
+                // 富途后缀逻辑：
+                // - 美股（NASDAQ/NYSE/PINK/AMEX/ARCA）统一使用 "US" 作为后缀
+                // - 其他则使用交易所本身（如 SH、SZ、HK）
+                // 构造形式："<code>-<suffix>"，示例：600519-SH、0700-HK、AAPL-US
+                const suffix = ['NASDAQ', 'NYSE', 'PINK', 'AMEX', 'ARCA'].includes(stock.exchange)
+                    ? 'US'
+                    : stock.exchange;
+
+                // 对整体进行 URL 编码，确保特殊字符（如果有）安全传输
+                const code = encodeURIComponent(`${stock.code}-${suffix}`);
+
+                return {
+                    text: '富途牛牛',
+                    url: `https://www.futunn.com/stock/${code}`,
+                    favicon: 'https://www.futunn.com/favicon.ico'
+                };
+            }
+        });
+    }
+    //美股｜港股
     if (['HK', 'NASDAQ', 'NYSE', 'PINK', 'AMEX', 'ARCA'].includes(stock.exchange)) {
         thirdPartyResources.push({
             exchange: stock.exchange,
