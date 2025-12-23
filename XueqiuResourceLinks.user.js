@@ -2,9 +2,9 @@
 // @name            XueqiuResourceLinks
 // @name:zh         雪球 · 第三方资源扩展
 // @namespace       https://github.com/garinasset/XueqiuResourceLinks
-// @version         7.5.6
+// @version         7.5.7
 //
-// @description     在雪球股票详情页侧边栏，添加相应“个股”的“第三方资源”，例如上证 e 互动、深交所互动易、SEC: EDGAR、港交所披露易等，点击即可跳转到对应个股的第三方资源站点，便利研究，提升生产力。
+// @description     Add relevant third-party resources for the selected stock to the sidebar of the Xueqiu stock detail page—such as SSE e-Interaction, SZSE Interactive Easy, SEC: EDGAR, and HKEX Disclosure of Interests. With a single click, users can jump directly to the corresponding third-party resource pages for that stock, making research more convenient and improving productivity.
 // @description:zh  在雪球股票详情页侧边栏，添加相应“个股”的“第三方资源”，例如上证 e 互动、深交所互动易、SEC: EDGAR、港交所披露易等，点击即可跳转到对应个股的第三方资源站点，便利研究，提升生产力。
 //
 // @author          garinasset
@@ -18,15 +18,13 @@
 //
 // @grant           GM_xmlhttpRequest
 //
-// @connect         www.laohu8.com
 // @connect         www.sec.gov
 // @connect         www1.hkexnews.hk
-// @connect         stocktwits.com
 // @connect         sns.sseinfo.com
 // @connect         irm.cninfo.com.cn
 //
-// @downloadURL     https://update.greasyfork.org/scripts/559757/XueqiuResourceLinks.user.js
-// @updateURL       https://update.greasyfork.org/scripts/559757/XueqiuResourceLinks.meta.js
+// @downloadURL https://update.greasyfork.org/scripts/559757/XueqiuResourceLinks.user.js
+// @updateURL https://update.greasyfork.org/scripts/559757/XueqiuResourceLinks.meta.js
 // ==/UserScript==
 
 
@@ -83,7 +81,7 @@
         }
 
         const match = el.textContent.match(
-            /\((SH|SZ|NASDAQ|NYSE|PINK|HK|AMEX):([\w\d\.-]+)\)/i
+            /\((SH|SZ|HK|NASDAQ|NYSE|PINK|AMEX|ARCA):([\w\d\.-]+)\)/i
         );
 
         if (!match) {
@@ -290,10 +288,6 @@
                 favicon: 'https://irm.cninfo.com.cn/favicon.ico'
             }
         },
-        NASDAQ: { fetcher: fetchUsCik, buildLink: buildSecLink },
-        NYSE:   { fetcher: fetchUsCik, buildLink: buildSecLink },
-        PINK:   { fetcher: fetchUsCik, buildLink: buildSecLink },
-        AMEX:   { fetcher: fetchUsCik, buildLink: buildSecLink },
         HK: {
             fetcher: fetchHkStockId,
             buildLink: stockId =>
@@ -302,7 +296,12 @@
                 url: `https://www1.hkexnews.hk/search/titlesearch.xhtml?lang=zh&stockId=${stockId}&category=0&market=SEHK`,
                 favicon: 'https://www.hkexnews.hk/ncms/images/favicon.ico'
             }
-        }
+        },
+        NASDAQ: { fetcher: fetchUsCik, buildLink: buildSecLink },
+        NYSE:   { fetcher: fetchUsCik, buildLink: buildSecLink },
+        PINK:   { fetcher: fetchUsCik, buildLink: buildSecLink },
+        AMEX:   { fetcher: fetchUsCik, buildLink: buildSecLink },
+        ARCA:   { fetcher: fetchUsCik, buildLink: buildSecLink },
     };
 
     function buildSecLink(cik) {
@@ -340,8 +339,8 @@
             })
         }
     ];
-
-    if (['NASDAQ', 'NYSE', 'PINK', 'HK', 'AMEX'].includes(stock.exchange)) {
+    //港股｜美股
+    if (['HK', 'NASDAQ', 'NYSE', 'PINK', 'AMEX', 'ARCA'].includes(stock.exchange)) {
         thirdPartyResources.push({
             exchange: stock.exchange,
             urlFetcher: async () => ({
@@ -351,8 +350,8 @@
             })
         });
     }
-
-    if (['NASDAQ', 'NYSE', 'PINK', 'AMEX'].includes(stock.exchange)) {
+    //美股
+    if (['NASDAQ', 'NYSE', 'PINK', 'AMEX', 'ARCA'].includes(stock.exchange)) {
         thirdPartyResources.push({
             exchange: stock.exchange,
             urlFetcher: async () => ({
@@ -362,7 +361,7 @@
             })
         });
     }
-
+    //A 股
     if (['SH', 'SZ'].includes(stock.exchange)) {
         thirdPartyResources.push({
             exchange: stock.exchange,
