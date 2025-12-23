@@ -4,8 +4,7 @@
 // @namespace       https://github.com/garinasset/XueqiuResourceLinks
 // @version         7.5.7
 //
-// @description     Add relevant third-party resources for the selected stock to the sidebar of the Xueqiu stock detail page—such as SSE e-Interaction, SZSE Interactive Easy, SEC: EDGAR, and HKEX Disclosure of Interests. With a single click, users can jump directly to the corresponding third-party resource pages for that stock, making research more convenient and improving productivity.
-// @description:zh  在雪球股票详情页侧边栏，添加相应“个股”的“第三方资源”，例如上证 e 互动、深交所互动易、SEC: EDGAR、港交所披露易等，点击即可跳转到对应个股的第三方资源站点，便利研究，提升生产力。
+// @description     在雪球股票详情页侧边栏，添加相应“个股”的“第三方资源”，例如上证 e 互动、深交所互动易、SEC: EDGAR、港交所披露易等，点击即可跳转到对应个股的第三方资源站点，便利研究，提升生产力。
 //
 // @author          garinasset
 // @license         MIT
