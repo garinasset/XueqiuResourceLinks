@@ -38,3 +38,7 @@
 - 自动更新：脚本内配置了 `@updateURL` 指向 GitHub Raw 文件，Tampermonkey 会自动检查更新
 
 ---
+
+## 许可证
+
+MIT License
