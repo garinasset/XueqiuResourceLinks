@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name            雪球 · 第三方资源扩展
 // @namespace       https://github.com/garinasset/XueqiuResourceLinks
-// @version         7.6.1
+// @version         7.6.2
 //
 // @description     在雪球股票详情页侧边栏，添加相应“个股”的“第三方资源”，例如上证 e 互动、深交所互动易、SEC: EDGAR、港交所披露易等，点击即可跳转到对应个股的第三方资源站点，便利研究，提升生产力。
 //
@@ -21,8 +21,8 @@
 // @connect         sns.sseinfo.com
 // @connect         irm.cninfo.com.cn
 //
-// @downloadURL     https://update.greasyfork.org/scripts/559757/XueqiuResourceLinks.user.js
-// @updateURL       https://update.greasyfork.org/scripts/559757/XueqiuResourceLinks.meta.js
+// @updateURL       https://raw.githubusercontent.com/garinasset/XueqiuResourceLinks/main/XueqiuResourceLinks.user.js
+// @downloadURL     https://raw.githubusercontent.com/garinasset/XueqiuResourceLinks/main/XueqiuResourceLinks.user.js
 // ==/UserScript==
 
 
