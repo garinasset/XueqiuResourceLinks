@@ -1,8 +1,7 @@
 // ==UserScript==
-// @name            XueqiuResourceLinks
-// @name:zh         雪球 · 第三方资源扩展
+// @name            雪球 · 第三方资源扩展
 // @namespace       https://github.com/garinasset/XueqiuResourceLinks
-// @version         7.6.0
+// @version         7.6.1
 //
 // @description     在雪球股票详情页侧边栏，添加相应“个股”的“第三方资源”，例如上证 e 互动、深交所互动易、SEC: EDGAR、港交所披露易等，点击即可跳转到对应个股的第三方资源站点，便利研究，提升生产力。
 //
@@ -113,29 +112,29 @@
         console.log('[Fetch] SSE UID use Stock code:', stockCode);
 
         return fetchWithCache('sse_uid_' + stockCode, () =>
-                              new Promise(resolve => {
-            GM_xmlhttpRequest({
-                method: 'POST',
-                url: SSEINFO_URL,
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                data: 'data=' + stockCode,
-                onload: res => {
-                    try {
-                        const uid = res.responseText.trim();
-                        console.log('[Fetch] SSE UID result:', uid);
-                        resolve(uid);
-                    } catch (e) {
-                        console.log('[Parse] SSE UID failed:', e);
+            new Promise(resolve => {
+                GM_xmlhttpRequest({
+                    method: 'POST',
+                    url: SSEINFO_URL,
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    data: 'data=' + stockCode,
+                    onload: res => {
+                        try {
+                            const uid = res.responseText.trim();
+                            console.log('[Fetch] SSE UID result:', uid);
+                            resolve(uid);
+                        } catch (e) {
+                            console.log('[Parse] SSE UID failed:', e);
+                            resolve(null);
+                        }
+                    },
+                    onerror: err => {
+                        console.log('[Fetch] SSE UID error:', err);
                         resolve(null);
                     }
-                },
-                onerror: err => {
-                    console.log('[Fetch] SSE UID error:', err);
-                    resolve(null);
-                }
-            });
-        })
-                             );
+                });
+            })
+        );
     }
 
     /**
@@ -151,30 +150,30 @@
         console.log('[Fetch] SZ orgId use Stock code:', stockCode);
 
         return fetchWithCache('sz_orgid_' + stockCode, () =>
-                              new Promise(resolve => {
-            GM_xmlhttpRequest({
-                method: 'POST',
-                url: CNINFO_URL,
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                data: 'keyWord=' + stockCode,
-                onload: res => {
-                    try {
-                        const json = JSON.parse(res.responseText);
-                        const orgId = json?.data?.[0]?.secid || null;
-                        console.log('[Fetch] SZ orgId result:', orgId);
-                        resolve(orgId);
-                    } catch (e) {
-                        console.log('[Parse] SZ orgId failed:', e);
+            new Promise(resolve => {
+                GM_xmlhttpRequest({
+                    method: 'POST',
+                    url: CNINFO_URL,
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    data: 'keyWord=' + stockCode,
+                    onload: res => {
+                        try {
+                            const json = JSON.parse(res.responseText);
+                            const orgId = json?.data?.[0]?.secid || null;
+                            console.log('[Fetch] SZ orgId result:', orgId);
+                            resolve(orgId);
+                        } catch (e) {
+                            console.log('[Parse] SZ orgId failed:', e);
+                            resolve(null);
+                        }
+                    },
+                    onerror: err => {
+                        console.log('[Fetch] SZ orgId error:', err);
                         resolve(null);
                     }
-                },
-                onerror: err => {
-                    console.log('[Fetch] SZ orgId error:', err);
-                    resolve(null);
-                }
-            });
-        })
-                             );
+                });
+            })
+        );
     }
 
 
@@ -193,34 +192,34 @@
         console.log('[Fetch] SEC CIK use Stock code:', ticker);
 
         return fetchWithCache('us_cik_' + ticker, () =>
-                              new Promise(resolve => {
-            GM_xmlhttpRequest({
-                method: 'GET',
-                url: SEC_JSON_URL,
-                onload: res => {
-                    try {
-                        const data = JSON.parse(res.responseText);
-                        const entry = Object.values(data).find(
-                            item => item.ticker.toUpperCase() === ticker.toUpperCase()
-                        );
-                        const cik = entry?.cik_str != null
-                        ? String(entry.cik_str).padStart(10, '0')
-                        : null;
+            new Promise(resolve => {
+                GM_xmlhttpRequest({
+                    method: 'GET',
+                    url: SEC_JSON_URL,
+                    onload: res => {
+                        try {
+                            const data = JSON.parse(res.responseText);
+                            const entry = Object.values(data).find(
+                                item => item.ticker.toUpperCase() === ticker.toUpperCase()
+                            );
+                            const cik = entry?.cik_str != null
+                                ? String(entry.cik_str).padStart(10, '0')
+                                : null;
 
-                        console.log('[Fetch] SEC CIK result:', cik);
-                        resolve(cik);
-                    } catch (e) {
-                        console.log('[Parse] SEC CIK failed:', e);
+                            console.log('[Fetch] SEC CIK result:', cik);
+                            resolve(cik);
+                        } catch (e) {
+                            console.log('[Parse] SEC CIK failed:', e);
+                            resolve(null);
+                        }
+                    },
+                    onerror: err => {
+                        console.log('[Fetch] SEC CIK error:', err);
                         resolve(null);
                     }
-                },
-                onerror: err => {
-                    console.log('[Fetch] SEC CIK error:', err);
-                    resolve(null);
-                }
-            });
-        })
-                             );
+                });
+            })
+        );
     }
 
     /**
@@ -236,33 +235,33 @@
         console.log('[Fetch] HK stockId use Stock code:', code);
 
         return fetchWithCache('hk_stockid_' + code, () =>
-                              new Promise(resolve => {
-            GM_xmlhttpRequest({
-                method: 'GET',
-                url: HKEXNEWS_URL,
-                onload: res => {
-                    try {
-                        const text = res.responseText.trim();
-                        const jsonText = text
-                        .replace(/^callback\(/, '')
-                        .replace(/\);$/, '');
-                        const json = JSON.parse(jsonText);
-                        const stockId = json?.stockInfo?.[0]?.stockId || null;
+            new Promise(resolve => {
+                GM_xmlhttpRequest({
+                    method: 'GET',
+                    url: HKEXNEWS_URL,
+                    onload: res => {
+                        try {
+                            const text = res.responseText.trim();
+                            const jsonText = text
+                                .replace(/^callback\(/, '')
+                                .replace(/\);$/, '');
+                            const json = JSON.parse(jsonText);
+                            const stockId = json?.stockInfo?.[0]?.stockId || null;
 
-                        console.log('[Fetch] HK stockId result:', stockId);
-                        resolve(stockId);
-                    } catch (e) {
-                        console.log('[Parse] HK stockId failed:', e);
+                            console.log('[Fetch] HK stockId result:', stockId);
+                            resolve(stockId);
+                        } catch (e) {
+                            console.log('[Parse] HK stockId failed:', e);
+                            resolve(null);
+                        }
+                    },
+                    onerror: err => {
+                        console.log('[Fetch] HK stockId error:', err);
                         resolve(null);
                     }
-                },
-                onerror: err => {
-                    console.log('[Fetch] HK stockId error:', err);
-                    resolve(null);
-                }
-            });
-        })
-                             );
+                });
+            })
+        );
     }
 
     /**
@@ -272,35 +271,35 @@
         SH: {
             fetcher: fetchSseUid,
             buildLink: uid =>
-            uid && {
-                text: '上证 e 互动',
-                url: `https://sns.sseinfo.com/company.do?uid=${uid}`,
-                favicon: 'https://sns.sseinfo.com/favicon.ico'
-            }
+                uid && {
+                    text: '上证 e 互动',
+                    url: `https://sns.sseinfo.com/company.do?uid=${uid}`,
+                    favicon: 'https://sns.sseinfo.com/favicon.ico'
+                }
         },
         SZ: {
             fetcher: fetchSzOrgId,
             buildLink: orgId =>
-            orgId && {
-                text: '深交所互动易',
-                url: `https://irm.cninfo.com.cn/ircs/company/companyDetail?stockcode=${stock.code}&orgId=${orgId}`,
-                favicon: 'https://irm.cninfo.com.cn/favicon.ico'
-            }
+                orgId && {
+                    text: '深交所互动易',
+                    url: `https://irm.cninfo.com.cn/ircs/company/companyDetail?stockcode=${stock.code}&orgId=${orgId}`,
+                    favicon: 'https://irm.cninfo.com.cn/favicon.ico'
+                }
         },
         HK: {
             fetcher: fetchHkStockId,
             buildLink: stockId =>
-            stockId && {
-                text: '披露易',
-                url: `https://www1.hkexnews.hk/search/titlesearch.xhtml?lang=zh&stockId=${stockId}&category=0&market=SEHK`,
-                favicon: 'https://www.hkexnews.hk/ncms/images/favicon.ico'
-            }
+                stockId && {
+                    text: '披露易',
+                    url: `https://www1.hkexnews.hk/search/titlesearch.xhtml?lang=zh&stockId=${stockId}&category=0&market=SEHK`,
+                    favicon: 'https://www.hkexnews.hk/ncms/images/favicon.ico'
+                }
         },
         NASDAQ: { fetcher: fetchUsCik, buildLink: buildSecLink },
-        NYSE:   { fetcher: fetchUsCik, buildLink: buildSecLink },
-        PINK:   { fetcher: fetchUsCik, buildLink: buildSecLink },
-        AMEX:   { fetcher: fetchUsCik, buildLink: buildSecLink },
-        ARCA:   { fetcher: fetchUsCik, buildLink: buildSecLink },
+        NYSE: { fetcher: fetchUsCik, buildLink: buildSecLink },
+        PINK: { fetcher: fetchUsCik, buildLink: buildSecLink },
+        AMEX: { fetcher: fetchUsCik, buildLink: buildSecLink },
+        ARCA: { fetcher: fetchUsCik, buildLink: buildSecLink },
     };
 
     function buildSecLink(cik) {
@@ -329,13 +328,13 @@
         {
             exchange: stock.exchange,
             urlFetcher: () =>
-            config
-            .fetcher(stock.code)
-            .then(config.buildLink)
-            .catch(err => {
-                console.log('[Fetch] Primary resource failed:', err);
-                return null;
-            })
+                config
+                    .fetcher(stock.code)
+                    .then(config.buildLink)
+                    .catch(err => {
+                        console.log('[Fetch] Primary resource failed:', err);
+                        return null;
+                    })
         }
     ];
     //港股｜美股
@@ -438,21 +437,21 @@
                         <!-- 圆环主体：加载中时用于动画，失败状态仅作为图形容器 -->
                         <circle cx="25" cy="25" r="20" stroke="${color}" stroke-width="4" fill="none">
                             ${
-                                // animate=true 时，显示循环颜色动画，表示“正在处理”
-                                animate
-                ? '<animate attributeName="stroke" values="blue;yellow;red;blue" dur="2s" repeatCount="indefinite"/>'
-            : ''
-        }
+                // animate=true 时，显示循环颜色动画，表示“正在处理”
+                animate
+                    ? '<animate attributeName="stroke" values="blue;yellow;red;blue" dur="2s" repeatCount="indefinite"/>'
+                    : ''
+                }
                         </circle>
                         ${
-                            // animate=false 时，绘制一个“叉号”，表示终态（失败 / 空资源 / 错误）
-                            animate
-                ? ''
-            : `
+                // animate=false 时，绘制一个“叉号”，表示终态（失败 / 空资源 / 错误）
+                animate
+                    ? ''
+                    : `
                                     <line x1="15" y1="15" x2="35" y2="35" stroke="${color}" stroke-width="4"/>
                                     <line x1="35" y1="15" x2="15" y2="35" stroke="${color}" stroke-width="4"/>
                                   `
-                        }
+                }
                     </svg>
                 </div>
                 <span class="third-party-links__text">${text}</span>
