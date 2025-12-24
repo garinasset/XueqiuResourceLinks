@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name            雪球 · 第三方资源扩展
 // @namespace       https://github.com/garinasset/XueqiuResourceLinks
-// @version         10.0.0
+// @version         11.0.0
 //
 // @description     在雪球股票详情页侧边栏，添加相应“个股”的“第三方资源”，例如上证 e 互动、深交所互动易、SEC: EDGAR、港交所披露易等，点击即可跳转到对应个股的第三方资源站点，便利研究，提升生产力。
 //
@@ -339,6 +339,14 @@
     ];
     // 港股｜美股 | A 股
     if (['SH', 'SZ', 'HK', 'NASDAQ', 'NYSE', 'PINK', 'AMEX', 'ARCA'].includes(stock.exchange)) {
+        thirdPartyResources.push({
+            exchange: stock.exchange,
+            urlFetcher: async () => ({
+                text: '电报',
+                url: `https://www.cls.cn/searchPage?keyword=${stock.code}&type=telegram`,
+                favicon: 'https://cdnjs.cls.cn/www/20200601/image/favicon.ico'
+            })
+        });
         thirdPartyResources.push({
             exchange: stock.exchange,
             urlFetcher: async () => {
