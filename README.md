@@ -4,6 +4,9 @@
 
 ![历史效果图--美股](https://github.com/user-attachments/assets/47ad5b4a-83b2-494a-b31b-15699d611e72)
 ![历史效果图--A股](https://github.com/user-attachments/assets/7d9ebbb2-1ff2-4bb5-b899-058e709db52a)
+<img width="2032" height="1099" alt="图片" src="https://github.com/user-attachments/assets/2599e45c-a85f-4306-81f8-02e58ba608b5" />
+<img width="2032" height="1099" alt="图片" src="https://github.com/user-attachments/assets/6e6f9d68-4ae8-4d88-adb7-1e0acc95984f" />
+
 
 ---
 
